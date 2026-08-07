@@ -1,4 +1,3 @@
-
 """
 Datathon Passos Mágicos — Aplicação Streamlit
 Painel analítico (perguntas 1 a 11) + preditor de risco de defasagem + cadastro de novos alunos.
@@ -36,12 +35,39 @@ DATA_PATH = "PEDE_consolidado_longo.csv"
 NOVOS_ALUNOS_PATH = "novos_alunos_cadastrados.csv"
 MODEL_PATH = "modelo_risco_defasagem.pkl"
 
+# ---- Paleta de cores do app: tons de azul e laranja ----
+AZUL_ESCURO = "#1F4E8C"
+AZUL = "#2B5C8F"
+AZUL_CLARO = "#6FA8DC"
+LARANJA_ESCURO = "#C9660B"
+LARANJA = "#E67E22"
+LARANJA_CLARO = "#F2B46D"
+
+PALETA_SEQ = [AZUL, LARANJA, AZUL_CLARO, LARANJA_CLARO, AZUL_ESCURO, LARANJA_ESCURO]
+ESCALA_DIVERGENTE = [[0.0, LARANJA_ESCURO], [0.5, "#FFFFFF"], [1.0, AZUL_ESCURO]]
+
+# Define a paleta padrão do Plotly Express para qualquer gráfico sem cor explícita
+px.defaults.color_discrete_sequence = PALETA_SEQ
+
 CORES_PEDRA = {
-    "Quartzo": "#8d8d8d",
-    "Ágata": "#c0765a",
-    "Ametista": "#7b5ea7",
-    "Topázio": "#e0b23c",
+    "Quartzo": AZUL_CLARO,
+    "Ágata": LARANJA_CLARO,
+    "Ametista": AZUL_ESCURO,
+    "Topázio": LARANJA_ESCURO,
 }
+CORES_CAT_DEFASAGEM = {
+    "Severamente defasado": LARANJA_ESCURO,
+    "Moderadamente defasado": LARANJA_CLARO,
+    "Adequado/Adiantado": AZUL_ESCURO,
+}
+CORES_MOVIMENTO = {
+    "Desceu": LARANJA_ESCURO,
+    "Manteve": LARANJA_CLARO,
+    "Subiu": AZUL_ESCURO,
+}
+CORES_GENERO = {"Feminino": AZUL, "Masculino": LARANJA}
+CORES_RESULTADO_IDA = {"Queda no IDA": LARANJA_ESCURO, "Manteve/Melhorou": AZUL}
+
 ORDEM_CAT = ["Severamente defasado", "Moderadamente defasado", "Adequado/Adiantado"]
 ORDEM_PEDRA = ["Quartzo", "Ágata", "Ametista", "Topázio"]
 
@@ -50,6 +76,13 @@ CAMPOS_CADASTRO = [
     "Instituicao_Ensino", "Pedra_Atual", "INDE", "IAA", "IEG", "IPS", "IPP",
     "IDA", "Matematica", "Portugues", "Ingles", "IPV", "IAN", "Defasagem",
 ]
+
+
+def rotula(fig, sufixo="", casas=2, posicao="outside"):
+    """Mostra o valor de cada ponto/barra direto no gráfico (sem precisar passar o
+    mouse), arredondado para `casas` decimais, com um sufixo opcional (ex.: '%')."""
+    fig.update_traces(texttemplate=f"%{{text:.{casas}f}}{sufixo}", textposition=posicao)
+    return fig
 
 
 # =========================================================================
@@ -171,8 +204,12 @@ if pagina == "🏠 Visão Geral":
     with col1:
         st.subheader("Evolução do INDE médio por ano")
         inde_ano = df.groupby("Ano")["INDE"].mean().reset_index()
-        fig = px.line(inde_ano, x="Ano", y="INDE", markers=True)
+        fig = px.line(
+            inde_ano, x="Ano", y="INDE", markers=True, text="INDE",
+            color_discrete_sequence=[AZUL],
+        )
         fig.update_xaxes(dtick=1)
+        rotula(fig, posicao="top center")
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
@@ -185,9 +222,10 @@ if pagina == "🏠 Visão Geral":
         )
         pedra_count.columns = ["Pedra", "Quantidade"]
         fig = px.bar(
-            pedra_count, x="Pedra", y="Quantidade", color="Pedra",
+            pedra_count, x="Pedra", y="Quantidade", color="Pedra", text="Quantidade",
             color_discrete_map=CORES_PEDRA,
         )
+        rotula(fig, casas=0)
         st.plotly_chart(fig, use_container_width=True)
 
     st.info(
@@ -231,8 +269,10 @@ elif pagina == "📊 Painel Analítico":
         fig = px.bar(
             tab, x="Ano", y="Percentual", color="Categoria", barmode="stack",
             category_orders={"Categoria": ORDEM_CAT[::-1]},
+            color_discrete_map=CORES_CAT_DEFASAGEM, text="Percentual",
         )
         fig.update_xaxes(dtick=1)
+        rotula(fig, sufixo="%", posicao="inside")
         st.plotly_chart(fig, use_container_width=True)
         st.markdown(
             "**Leitura:** o nível adequado/adiantado sobe de **30% (2022) para 54% (2024)**, "
@@ -245,16 +285,21 @@ elif pagina == "📊 Painel Analítico":
         col1, col2 = st.columns(2)
         with col1:
             ida_ano = df.groupby("Ano")["IDA"].mean().reset_index()
-            fig = px.line(ida_ano, x="Ano", y="IDA", markers=True, title="IDA médio por ano")
+            fig = px.line(
+                ida_ano, x="Ano", y="IDA", markers=True, title="IDA médio por ano",
+                text="IDA", color_discrete_sequence=[AZUL],
+            )
             fig.update_xaxes(dtick=1)
+            rotula(fig, posicao="top center")
             st.plotly_chart(fig, use_container_width=True)
         with col2:
             ida_fase = df.groupby(["Fase_Num", "Ano"])["IDA"].mean().reset_index()
             fig = px.line(
                 ida_fase, x="Fase_Num", y="IDA", color=ida_fase["Ano"].astype(str),
                 markers=True, title="IDA médio por fase",
-                labels={"color": "Ano"},
+                labels={"color": "Ano"}, text="IDA",
             )
+            rotula(fig, posicao="top center")
             st.plotly_chart(fig, use_container_width=True)
         st.markdown(
             "**Leitura:** o IDA sobe de 6,09 (2022) para 6,66 (2023) e recua para 6,35 em 2024. "
@@ -271,6 +316,7 @@ elif pagina == "📊 Painel Analítico":
         col2.metric("Correlação IEG x IPV", f"{r2:.2f}")
         fig = px.scatter(
             df.sample(min(1500, len(df)), random_state=1), x="IEG", y="IDA", opacity=0.4,
+            color_discrete_sequence=[AZUL],
         )
         st.plotly_chart(fig, use_container_width=True)
         st.markdown(
@@ -288,6 +334,7 @@ elif pagina == "📊 Painel Analítico":
         col2.metric("Correlação IAA x IEG", f"{r2:.2f}")
         fig = px.scatter(
             df.sample(min(1500, len(df)), random_state=1), x="IAA", y="IDA", opacity=0.4,
+            color_discrete_sequence=[LARANJA],
         )
         st.plotly_chart(fig, use_container_width=True)
         st.markdown(
@@ -320,6 +367,7 @@ elif pagina == "📊 Painel Analítico":
         fig = px.box(
             df_hist, x="Resultado_IDA", y="IPS_Anterior", color="Resultado_IDA",
             points=False, title="IPS do ano anterior, por resultado de IDA no ano seguinte",
+            color_discrete_map=CORES_RESULTADO_IDA,
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -339,6 +387,7 @@ elif pagina == "📊 Painel Analítico":
         fig = px.violin(
             df_q6, x="Cat_Defasagem", y="IPP", color="Cat_Defasagem",
             category_orders={"Cat_Defasagem": ORDEM_CAT[::-1]}, box=True,
+            color_discrete_map=CORES_CAT_DEFASAGEM,
         )
         st.plotly_chart(fig, use_container_width=True)
         st.markdown(
@@ -357,7 +406,9 @@ elif pagina == "📊 Painel Analítico":
         fig = px.bar(
             x=corr_ipv.values, y=corr_ipv.index, orientation="h",
             labels={"x": "Correlação com IPV", "y": "Indicador"},
+            text=corr_ipv.values, color_discrete_sequence=[AZUL],
         )
+        rotula(fig)
         st.plotly_chart(fig, use_container_width=True)
         st.markdown(
             "**Leitura:** IPP (0,61), IDA e IEG (0,56 cada) são os mais associados ao ponto de "
@@ -372,12 +423,16 @@ elif pagina == "📊 Painel Analítico":
         fig = px.bar(
             x=corr_inde.values, y=corr_inde.index, orientation="h",
             labels={"x": "Correlação com INDE", "y": "Indicador"},
+            text=corr_inde.values, color_discrete_sequence=[AZUL],
         )
+        rotula(fig)
         st.plotly_chart(fig, use_container_width=True)
 
         st.subheader("Matriz de correlação completa")
         matriz = df[cols_inde + ["INDE"]].corr().round(2)
-        fig2 = px.imshow(matriz, text_auto=True, color_continuous_scale="RdBu_r", zmin=-1, zmax=1)
+        fig2 = px.imshow(
+            matriz, text_auto=".2f", color_continuous_scale=ESCALA_DIVERGENTE, zmin=-1, zmax=1,
+        )
         st.plotly_chart(fig2, use_container_width=True)
         st.markdown(
             "**Leitura:** IDA (0,79), IEG (0,75) e IPV (0,72) são os que mais elevam o INDE — "
@@ -406,7 +461,9 @@ elif pagina == "📊 Painel Analítico":
             x=importancias.values, y=importancias.index, orientation="h",
             labels={"x": "Importância", "y": "Variável"},
             title="Quais indicadores antecipam o risco futuro?",
+            text=importancias.values, color_discrete_sequence=[AZUL],
         )
+        rotula(fig)
         st.plotly_chart(fig, use_container_width=True)
         st.markdown(
             "**Leitura:** o Random Forest (AUC 0,71) supera a Regressão Logística (AUC 0,68) na "
@@ -424,8 +481,10 @@ elif pagina == "📊 Painel Analítico":
         fig = px.line(
             inde_pedra, x="Ano", y="INDE", color="Pedra_Atual", markers=True,
             category_orders={"Pedra_Atual": ORDEM_PEDRA}, color_discrete_map=CORES_PEDRA,
+            text="INDE",
         )
         fig.update_xaxes(dtick=1)
+        rotula(fig, posicao="top center")
         st.plotly_chart(fig, use_container_width=True)
 
         st.subheader("Movimentação de Pedra entre anos consecutivos")
@@ -447,7 +506,9 @@ elif pagina == "📊 Painel Analítico":
         fig = px.bar(
             resumo, x="Transição", y="Percentual", color="Movimento", barmode="stack",
             category_orders={"Movimento": ["Desceu", "Manteve", "Subiu"]},
+            color_discrete_map=CORES_MOVIMENTO, text="Percentual",
         )
+        rotula(fig, sufixo="%", posicao="inside")
         st.plotly_chart(fig, use_container_width=True)
         st.caption(f"Base: {len(piv_pedra)} alunos presentes nos três anos.")
         st.markdown(
@@ -471,7 +532,11 @@ elif pagina == "📊 Painel Analítico":
         col1, col2 = st.columns(2)
         with col1:
             genero = df_insights.groupby("Gênero")["INDE"].mean().reset_index()
-            fig = px.bar(genero, x="Gênero", y="INDE", title="INDE médio por gênero")
+            fig = px.bar(
+                genero, x="Gênero", y="INDE", color="Gênero", text="INDE",
+                title="INDE médio por gênero", color_discrete_map=CORES_GENERO,
+            )
+            rotula(fig)
             st.plotly_chart(fig, use_container_width=True)
         with col2:
             inst = (
@@ -479,8 +544,13 @@ elif pagina == "📊 Painel Analítico":
                 .agg(["mean", "count"]).sort_values("count", ascending=False).head(5)
                 .reset_index()
             )
-            fig = px.bar(inst, x="Instituicao_Ensino", y="mean", title="INDE médio por instituição (unificadas)")
+            fig = px.bar(
+                inst, x="Instituicao_Ensino", y="mean", text="mean",
+                title="INDE médio por instituição (unificadas)",
+                color_discrete_sequence=[AZUL],
+            )
             fig.update_xaxes(tickangle=25)
+            rotula(fig)
             st.plotly_chart(fig, use_container_width=True)
 
         st.subheader("Matriz de Engajamento (IEG) x Desempenho (IDA), por Pedra")
@@ -489,8 +559,8 @@ elif pagina == "📊 Painel Analítico":
             category_orders={"Pedra_Atual": ORDEM_PEDRA}, color_discrete_map=CORES_PEDRA,
             opacity=0.5,
         )
-        fig3.add_hline(y=df_insights["IDA"].mean(), line_dash="dash", line_color="red")
-        fig3.add_vline(x=df_insights["IEG"].mean(), line_dash="dash", line_color="green")
+        fig3.add_hline(y=df_insights["IDA"].mean(), line_dash="dash", line_color=LARANJA_ESCURO)
+        fig3.add_vline(x=df_insights["IEG"].mean(), line_dash="dash", line_color=AZUL_ESCURO)
         st.plotly_chart(fig3, use_container_width=True)
 
         st.markdown(
