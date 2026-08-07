@@ -171,12 +171,41 @@ def selo_risco(proba: float):
 # =========================================================================
 # NAVEGAÇÃO (barra lateral)
 # =========================================================================
+st.markdown(
+    """
+    <style>
+    /* Esconde a bolinha do st.radio usado como menu e estiliza os rótulos
+       como itens de menu clicáveis (só o texto, sem indicador circular) */
+    div[role="radiogroup"] > label > div:first-child {
+        display: none;
+    }
+    div[role="radiogroup"] > label {
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin-bottom: 2px;
+        width: 100%;
+        transition: background-color 0.15s ease;
+    }
+    div[role="radiogroup"] > label:hover {
+        background-color: rgba(43, 92, 143, 0.12);
+    }
+    div[role="radiogroup"] > label[data-checked="true"],
+    div[role="radiogroup"] > label:has(input:checked) {
+        background-color: rgba(43, 92, 143, 0.20);
+        font-weight: 600;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 st.sidebar.title("✨ Passos Mágicos")
 st.sidebar.caption("Datathon — PEDE 2022-2024")
 
 pagina = st.sidebar.radio(
     "Navegação",
     ["🏠 Visão Geral", "📊 Painel Analítico", "🔮 Preditor de Risco", "📝 Cadastro de Novo Aluno"],
+    label_visibility="collapsed",
 )
 
 st.sidebar.markdown("---")
@@ -317,9 +346,8 @@ elif pagina == "📊 Painel Analítico":
             fig = px.line(
                 ida_fase, x="Fase_Num", y="IDA", color=ida_fase["Ano"].astype(str),
                 markers=True, title="IDA médio por fase",
-                labels={"color": "Ano"}, text="IDA",
+                labels={"color": "Ano"},
             )
-            rotula(fig, posicao="top center")
             st.plotly_chart(fig, use_container_width=True)
         st.markdown(
             "**Leitura:** o IDA sobe de 6,09 (2022) para 6,66 (2023) e recua para 6,35 em 2024. "
@@ -352,14 +380,22 @@ elif pagina == "📊 Painel Analítico":
         col1, col2 = st.columns(2)
         col1.metric("Correlação IAA x IDA", f"{r1:.2f}")
         col2.metric("Correlação IAA x IEG", f"{r2:.2f}")
+
+        amostra = df.sample(min(1500, len(df)), random_state=1)
+        df_iaa = pd.concat([
+            amostra[["IAA", "IDA"]].rename(columns={"IDA": "Valor"}).assign(Comparação="IAA x IDA"),
+            amostra[["IAA", "IEG"]].rename(columns={"IEG": "Valor"}).assign(Comparação="IAA x IEG"),
+        ], ignore_index=True)
         fig = px.scatter(
-            df.sample(min(1500, len(df)), random_state=1), x="IAA", y="IDA", opacity=0.4,
-            color_discrete_sequence=[LARANJA],
+            df_iaa, x="IAA", y="Valor", color="Comparação", opacity=0.4,
+            color_discrete_map={"IAA x IDA": AZUL, "IAA x IEG": LARANJA},
+            labels={"Valor": "IDA / IEG"},
         )
         st.plotly_chart(fig, use_container_width=True)
         st.markdown(
-            "**Leitura:** correlação fraca — a percepção do aluno sobre si mesmo não é um bom "
-            "preditor do seu desempenho real."
+            "**Leitura:** correlação fraca em ambos os casos — a percepção do aluno sobre si "
+            "mesmo não é um bom preditor nem do seu desempenho real (pontos azuis), nem do seu "
+            "engajamento observado (pontos laranja)."
         )
 
     # ---------------------------------------------------------------
@@ -480,13 +516,14 @@ elif pagina == "📊 Painel Analítico":
             st.metric("AUC — validação out-of-time", f"{AUC_TESTE:.3f}")
 
         importancias = pd.Series(modelo_pack.get("importancias", {})).sort_values()
+        importancias_pct = importancias / importancias.sum() * 100
         fig = px.bar(
-            x=importancias.values, y=importancias.index, orientation="h",
-            labels={"x": "Importância (por permutação)", "y": "Variável"},
+            x=importancias_pct.values, y=importancias_pct.index, orientation="h",
+            labels={"x": "Importância relativa (%)", "y": "Variável"},
             title="Quais indicadores mais pesam na previsão de risco?",
-            text=importancias.values, color_discrete_sequence=[AZUL],
+            text=importancias_pct.values, color_discrete_sequence=[AZUL],
         )
-        rotula(fig, casas=3)
+        rotula(fig, sufixo="%")
         st.plotly_chart(fig, use_container_width=True)
         st.markdown(
             "**Leitura:** o IAN concentra a maior parte do sinal preditivo — o que faz sentido, "
