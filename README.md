@@ -1,157 +1,190 @@
-[README.md](https://github.com/user-attachments/files/30847392/README.md)
-# dathatonfiap# Painel PEDE — Passos Mágicos (Streamlit)
 
-App com **painel analítico** (respostas às 11 perguntas do desafio, alinhadas ao notebook de
-análise corrigido), um **preditor de risco de defasagem** (validação temporal out-of-time) e uma
-página de **cadastro de novos alunos**.
+💎 Lapidar — Plataforma de Inteligência Educacional
 
-## Arquivos deste projeto
+FIAP Datathon 2026 • Passos Mágicos
 
-```
-app.py                          -> aplicação principal (é isso que você "roda")
-train_model.py                  -> script que treina e salva o modelo (já rodado uma vez p/ você)
-modelo_risco_defasagem.pkl      -> modelo treinado (Random Forest, AUC ≈ 0,715, validação out-of-time)
-PEDE_consolidado_longo.csv      -> base de dados limpa, usada pelo app
-requirements.txt                -> lista de bibliotecas que o app precisa
-novos_alunos_cadastrados.csv    -> gerado automaticamente quando alguém usa a página de cadastro
-```
+O **Lapidar** é uma plataforma de inteligência educacional desenvolvida para o Datathon FIAP 2026, utilizando dados da Associação Passos Mágicos.
 
-Os arquivos-base **precisam estar todos na mesma pasta** (e depois, no mesmo repositório do
-GitHub) para o app funcionar, porque `app.py` os carrega por caminho relativo.
-
-## Sobre o modelo preditivo
-
-
-
-**Correção:** o modelo agora é um `HistGradientBoostingClassifier` com **restrição de
-monotonicidade** (`monotonic_cst`): por construção, aumentar qualquer indicador nunca eleva o
-risco previsto — não é mais algo que o modelo "aprende sozinho" e pode errar em casos raros, é uma
-regra matemática garantida. O `train_model.py` roda automaticamente uma checagem de sanidade (um
-perfil com todos os indicadores em 10 precisa ficar com risco abaixo de 20%) e já viria travando o
-treino no futuro se essa premissa for quebrada.
-
-- **Validação temporal out-of-time**: treina com a transição 2022→2023, testa com 2023→2024.
-- **Alvo**: o aluno permanece (ou passa a estar) em situação crítica (`Defasagem ≤ -1`) no ano
-  seguinte.
-- **Variáveis**: IAN, IDA, IEG, IAA, IPS.
-- **Desempenho**: AUC ≈ 0,71 na validação out-of-time.
-- **Checagem**: aluno com todos os indicadores em 10 agora fica em ~8% de risco (antes: 35,7%).
-
-## Sobre o cadastro de novos alunos
-
-A página **📝 Cadastro de Novo Aluno** permite registrar um aluno novo (identificação + os 10
-indicadores) direto pela interface. Ao salvar:
-- o registro entra numa tabela local da aplicação (visível na mesma página);
-- a probabilidade de risco de defasagem já é calculada e mostrada na hora;
-- um botão permite baixar todos os cadastros feitos em `.csv`.
-
-> ⚠️ **Importante:** no plano gratuito do Community Cloud, o disco do app é temporário — os
-> cadastros ficam lá enquanto o app está ativo, mas podem se perder se o serviço reiniciar. Baixe
-> o CSV periodicamente se quiser guardar os cadastros de forma permanente, ou (para algo mais
-> robusto) troque a gravação em CSV por um banco de dados externo (ex.: Google Sheets, Supabase,
-> etc.) — fico à disposição se quiser evoluir para isso depois.
+O nome nasce da própria jornada que o programa propõe aos seus alunos — da pedra bruta (Quartzo) até a pedra lapidada (Topázio). O projeto transforma dados educacionais em informações estratégicas por meio de tratamento e análise de dados, visualizações interativas e um modelo de Machine Learning, permitindo compreender a trajetória dos estudantes e identificar, com antecedência, oportunidades de intervenção.
 
 ---
 
-## Passo 1 — Rodar localmente no seu computador (recomendado antes do deploy)
+## 🎯 Missão
 
-1. Tenha o Python instalado (3.10+). Verifique no terminal:
-   ```bash
-   python3 --version
-   ```
-2. Abra um terminal na pasta onde estão esses arquivos e instale as dependências:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Rode o app:
-   ```bash
-   streamlit run app.py
-   ```
-4. Vai abrir automaticamente no navegador em algo como `http://localhost:8501`. Se não abrir
-   sozinho, copie esse endereço que aparece no terminal e cole no navegador.
-5. Para parar, `Ctrl + C` no terminal.
+Transformar os dados da Pesquisa Extensiva do Desenvolvimento Educacional (PEDE) em conhecimento acionável, apoiando a Passos Mágicos a identificar precocemente alunos em risco de defasagem e a entender quais fatores mais influenciam o desenvolvimento educacional de cada estudante.
 
-> Não tem Python "de sobra" na sua máquina, ou não quer instalar nada? Dá pra fazer esse teste
-> local também pelo **GitHub Codespaces** (um VS Code no navegador, gratuito até um certo limite
-> de horas) — abra o repositório no GitHub, clique em **Code → Codespaces → Create codespace**, e
-> rode os mesmos comandos acima no terminal que aparece.
+## 🔭 Visão
+
+Ser uma ferramenta contínua de apoio à decisão pedagógica — não um relatório estático — para que a cada novo ciclo do PEDE a instituição tenha, em minutos, um raio-x atualizado da adequação de nível, do desempenho e do risco de defasagem de seus alunos.
 
 ---
 
-## Passo 2 — Subir os arquivos para o GitHub
+## 📊 Indicadores Educacionais
 
-Você já tem um repositório (`juliamchaves/dathatonfiap`, usado para hospedar o CSV). Duas formas
-de colocar os arquivos lá:
+As análises do Lapidar exploram os principais indicadores disponibilizados pela Associação Passos Mágicos:
 
-**Opção A — pelo site do GitHub (mais simples, sem usar terminal):**
-1. Entre no repositório no navegador.
-2. Crie uma pasta para o app (ex.: `streamlit_app/`) usando **Add file → Create new file** e
-   digitando `streamlit_app/app.py` como nome (o GitHub cria a pasta sozinho).
-3. Cole o conteúdo de cada arquivo (`app.py`, `requirements.txt`, `train_model.py`) e clique em
-   **Commit changes**.
-4. Para os arquivos binários/grandes (`modelo_risco_defasagem.pkl`, `PEDE_consolidado_longo.csv`),
-   use **Add file → Upload files** e arraste-os para dentro da mesma pasta `streamlit_app/`.
+| Indicador | Descrição |
+|---|---|
+| **IAN** | Indicador de Adequação de Nível |
+| **IDA** | Indicador de Desempenho Acadêmico |
+| **IEG** | Indicador de Engajamento |
+| **IAA** | Indicador de Autoavaliação |
+| **IPS** | Indicador Psicossocial |
+| **IPP** | Indicador Psicopedagógico |
+| **IPV** | Indicador de Ponto de Virada |
+| **INDE** | Índice do Desenvolvimento Educacional |
 
-**Opção B — pelo terminal (git):**
+---
+
+## 🔎 Análises Desenvolvidas
+
+O painel analítico responde às 11 questões de negócio propostas pelo Datathon:
+
+1. **Defasagem Escolar — IAN**: perfil e evolução da adequação de nível dos alunos (Adequado/Adiantado, Moderadamente defasado, Severamente defasado) entre 2022 e 2024.
+2. **Desempenho Acadêmico — IDA**: evolução do desempenho médio ao longo das fases e dos anos.
+3. **Engajamento — IEG**: relação entre engajamento, desempenho acadêmico (IDA) e ponto de virada (IPV).
+4. **Autoavaliação — IAA**: coerência entre a percepção dos alunos sobre si mesmos e seus resultados reais de desempenho e engajamento.
+5. **Aspectos Psicossociais — IPS**: análise longitudinal para identificar se o IPS antecede quedas futuras de desempenho ou engajamento.
+6. **Aspectos Psicopedagógicos — IPP**: comparação entre as avaliações psicopedagógicas e os níveis de defasagem identificados pelo IAN.
+7. **Ponto de Virada — IPV**: quais indicadores mais se associam ao ponto de virada dos alunos.
+8. **Multidimensionalidade — INDE**: quais combinações de indicadores mais elevam a nota global do aluno.
+9. **Previsão de Risco — Machine Learning**: modelo preditivo de risco de defasagem (detalhado na seção **Modelo Preditivo** abaixo).
+10. **Efetividade do Programa**: progressão do INDE e movimentação de alunos entre as Pedras (Quartzo, Ágata, Ametista, Topázio) ao longo do ciclo.
+11. **Insights Adicionais**: gênero, rede de ensino e cruzamento engajamento × desempenho.
+
+---
+
+## 📈 Dashboard
+
+O Lapidar possui um painel interativo desenvolvido com **Streamlit** e **Plotly**, organizado em quatro áreas:
+
+- **🏠 Visão Geral** — KPIs consolidados e evolução do INDE.
+- **📊 Painel Analítico** — as 11 análises acima, com gráficos interativos e leitura escrita de cada resultado.
+- **🔮 Preditor de Risco** — simulador que estima a probabilidade de um aluno entrar em risco de defasagem no próximo ciclo.
+- **📝 Cadastro de Novo Aluno** — formulário para registrar um novo aluno e já obter, na hora, a estimativa de risco calculada pelo modelo.
+
+A identidade visual segue uma paleta própria em tons de azul e laranja, com rótulos numéricos exibidos diretamente nos gráficos.
+
+---
+
+## 🤖 Modelo Preditivo
+
+O modelo estima a probabilidade de um aluno **permanecer ou passar a estar em situação crítica de defasagem** (`Defasagem ≤ -1`) no ciclo seguinte, a partir dos indicadores do ciclo atual.
+
+- **Algoritmo**: `HistGradientBoostingClassifier` (scikit-learn) com **restrição de monotonicidade** — por construção, melhorar qualquer indicador nunca aumenta o risco previsto, evitando comportamento contraintuitivo em perfis extremos pouco representados na base.
+- **Variáveis utilizadas**: IAN, IDA, IEG, IAA, IPS.
+- **Validação**: temporal *out-of-time* — treino na transição 2022→2023, teste na transição 2023→2024 (nunca mistura dados do "futuro" no treino).
+- **Desempenho**: AUC-ROC ≈ **0,71** no conjunto de teste.
+- **Checagem de sanidade automática**: a cada retreino, o modelo é testado contra um aluno hipotético com todos os indicadores no valor máximo, que precisa obrigatoriamente ficar com risco baixo (< 20%).
+
+O notebook `02_analise_exploratoria_PEDE.ipynb` documenta a comparação entre Regressão Logística, Random Forest e o modelo final, incluindo curva ROC, importância de variáveis (por permutação) e o ranking de alunos prioritários para intervenção.
+
+---
+
+## 🛠️ Tecnologias Utilizadas
+
+- Python
+- Streamlit
+- Pandas
+- NumPy
+- Plotly
+- Scikit-learn
+- OpenPyXL
+- Joblib
+
+---
+
+## 📂 Estrutura do Projeto
+
+```
+dathatonfiap/
+├── app/
+│   ├── app.py
+│   ├── train_model.py
+│   ├── requirements.txt
+│   └── modelo_risco_defasagem.pkl
+│
+├── data/
+│   └── raw/
+│       ├── BASE_DE_DADOS_PEDE_2024_-_DATATHON.xlsx
+│       └── PEDE_consolidado_longo.csv
+│
+├── notebooks/
+│   ├── 01_limpeza_dados_PEDE.ipynb
+│   └── 02_analise_exploratoria_PEDE.ipynb
+│
+└── README.md
+```
+
+---
+
+## ▶️ Como executar o projeto
+
+Clone o repositório
 ```bash
 git clone https://github.com/juliamchaves/dathatonfiap.git
-cd dathatonfiap
-mkdir streamlit_app
-# copie app.py, requirements.txt, train_model.py, modelo_risco_defasagem.pkl e
-# PEDE_consolidado_longo.csv para dentro de streamlit_app/
-git add streamlit_app
-git commit -m "Adiciona app Streamlit do Datathon"
-git push
 ```
 
----
-
-## Passo 3 — Deploy no Streamlit Community Cloud
-
-1. Acesse **https://share.streamlit.io** e faça login com sua conta do **GitHub**.
-2. Clique em **Create app** (ou **New app**).
-3. Escolha **"Deploy a public app from GitHub"**.
-4. Preencha:
-   - **Repository**: `juliamchaves/dathatonfiap`
-   - **Branch**: `main` (ou a branch onde você deu commit)
-   - **Main file path**: `streamlit_app/app.py` (o caminho até o `app.py`, dentro do repo)
-5. Clique em **Deploy**.
-6. Aguarde alguns minutos — ele vai instalar as dependências do `requirements.txt` e iniciar o
-   app. Você vai ver os logs de build na tela.
-7. Quando terminar, você recebe uma URL pública tipo:
-   `https://dathatonfiap-streamlit-app.streamlit.app` — esse é o link que você entrega no
-   Datathon.
-
-### Se der erro no deploy
-
-- **`ModuleNotFoundError: No module named '_loss'`** (ou qualquer erro parecido ao carregar o
-  `.pkl`): isso é **incompatibilidade de versão do scikit-learn** — o modelo foi salvo com a
-  versão `1.8.0`, e o ambiente tem uma versão diferente instalada (geralmente porque já havia uma
-  versão em cache antes de você adicionar/editar o `requirements.txt`). Para corrigir:
-  1. Confirme que `requirements.txt` tem exatamente a linha `scikit-learn==1.8.0`.
-  2. **No Community Cloud**: abra o menu **⋮** (canto superior direito do app) → **Reboot app**
-     (ou **Manage app → Reboot**) para forçar a reinstalação das dependências do zero.
-  3. **No GitHub Codespaces / máquina local**: rode
-     `pip install -r requirements.txt --force-reinstall --no-cache-dir`.
-  4. Se ainda persistir, rode `python train_model.py` na sua própria máquina/ambiente (com o
-     scikit-learn já na versão correta) para gerar um `.pkl` novo, compatível com o ambiente onde
-     ele vai rodar, e suba esse arquivo atualizado para o repositório.
-- **"ModuleNotFoundError" para outras bibliotecas**: falta alguma linha no `requirements.txt` —
-  adicione e o app refaz o deploy automaticamente a cada novo `git push`.
-- **"FileNotFoundError: PEDE_consolidado_longo.csv"** (ou o `.pkl`): confirme que esses arquivos
-  estão de fato dentro da mesma pasta do `app.py` no repositório (não só na sua máquina).
-- **App "dormiu"**: no plano gratuito, apps sem uso por um tempo entram em modo inativo. Basta
-  abrir o link de novo e clicar em "Yes, wake this app up" — volta ao ar em segundos.
-- Para forçar reprocessamento depois de trocar dados/modelo, use o menu **⋮ → Rerun** ou
-  **Clear cache** no canto superior direito do app.
-
----
-
-## Atualizando o modelo no futuro
-
-Se a base de dados for atualizada (ex.: PEDE 2025), rode de novo:
+Entre no diretório do app
 ```bash
-python train_model.py
+cd dathatonfiap/app
 ```
-Isso gera um novo `modelo_risco_defasagem.pkl`. Suba o arquivo atualizado para o GitHub
-(commit + push) e o Streamlit Community Cloud atualiza o app sozinho.
+
+Crie um ambiente virtual
+
+macOS / Linux
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Windows
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+Instale as dependências
+```bash
+pip install -r requirements.txt
+```
+
+Execute o Streamlit
+```bash
+streamlit run app.py
+```
+
+---
+
+## 📦 Dependências
+
+As principais dependências estão definidas no arquivo `requirements.txt`:
+
+```
+streamlit>=1.32
+pandas>=2.0
+numpy>=1.24
+plotly>=5.18
+scikit-learn==1.8.0
+joblib>=1.3
+```
+
+---
+
+## 🌐 Aplicação em produção
+
+Deploy realizado no **Streamlit Community Cloud**. Link da aplicação: *[adicionar aqui a URL gerada após o deploy]*.
+
+---
+
+## 👥 Equipe
+
+FIAP Datathon 2026 — Passos Mágicos
+
+- Júlia — RM367721
+
+---
+
+## 💎 Lapidar
+
+Da pedra bruta à pedra lapidada — transformando dados em oportunidade.
