@@ -115,7 +115,19 @@ def carregar_dados():
 
 @st.cache_resource
 def carregar_modelo():
-    return joblib.load(MODEL_PATH)
+    try:
+        return joblib.load(MODEL_PATH)
+    except ModuleNotFoundError as e:
+        st.error(
+            "❌ Não foi possível carregar o modelo (`modelo_risco_defasagem.pkl`) — erro: "
+            f"`{e}`.\n\n"
+            "Isso normalmente acontece quando a versão do **scikit-learn** instalada no "
+            "ambiente é diferente da versão usada para treinar o modelo. Confira se o "
+            "`requirements.txt` tem a linha `scikit-learn==1.8.0` e force a reinstalação das "
+            "dependências (no Community Cloud: menu **⋮ → Reboot app**; localmente: "
+            "`pip install -r requirements.txt --force-reinstall`)."
+        )
+        st.stop()
 
 
 def carregar_novos_alunos():
