@@ -76,15 +76,6 @@ Estima a probabilidade de um aluno **permanecer ou passar a estar em situação 
 - **Validação cruzada (robustez extra)**: 5-fold estratificada dentro do treino — accuracy 0,71 ± 0,02, precision 0,73 ± 0,02, recall 0,83 ± 0,02, F1 0,78 ± 0,01, ROC AUC 0,76 ± 0,03.
 - **Checagens de sanidade automáticas**: aluno exemplar com risco < 30%, nenhuma variável > 70% de importância, AUC ≥ 0,70.
 
-### Fórmula oficial do INDE (pergunta 8)
-
-Reconstruída e validada empiricamente contra a base real (erro médio de ~0,002 ponto):
-
-```
-INDE = 0,10×IAN + 0,20×IDA + 0,20×IEG + 0,10×IAA + 0,10×IPS + 0,10×IPP + 0,20×IPV
-```
-
----
 
 ## 🛠️ Tecnologias Utilizadas
 
