@@ -22,6 +22,8 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from modelo_utils import ModeloMonotonicoLogistico  # noqa: F401 (necessário para o joblib.load)
+
 # =========================================================================
 # CONFIGURAÇÃO DA PÁGINA
 # =========================================================================
@@ -110,6 +112,7 @@ def categoriza_defasagem(d):
 def carregar_dados():
     df = pd.read_csv(DATA_PATH)
     df["Cat_Defasagem"] = df["Defasagem"].apply(categoriza_defasagem)
+    df["Anos_na_PM"] = df["Ano"] - df["Ano ingresso"]
     return df
 
 
@@ -172,28 +175,40 @@ def selo_risco(proba: float):
 # NAVEGAÇÃO (barra lateral)
 # =========================================================================
 st.markdown(
-    """
+    f"""
     <style>
-    /* Esconde a bolinha do st.radio usado como menu e estiliza os rótulos
-       como itens de menu clicáveis (só o texto, sem indicador circular) */
-    div[role="radiogroup"] > label > div:first-child {
-        display: none;
-    }
-    div[role="radiogroup"] > label {
-        padding: 8px 12px;
-        border-radius: 8px;
-        margin-bottom: 2px;
+    /* Botões do menu lateral: ocupam a largura toda, alinhados à esquerda,
+       sem a aparência padrão de botão (borda grossa/sombra) */
+    [data-testid="stSidebar"] .stButton > button {{
         width: 100%;
-        transition: background-color 0.15s ease;
-    }
-    div[role="radiogroup"] > label:hover {
-        background-color: rgba(43, 92, 143, 0.12);
-    }
-    div[role="radiogroup"] > label[data-checked="true"],
-    div[role="radiogroup"] > label:has(input:checked) {
-        background-color: rgba(43, 92, 143, 0.20);
+        text-align: left;
+        justify-content: flex-start;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 0.9rem;
+        margin-bottom: 2px;
+        font-weight: 400;
+        box-shadow: none;
+    }}
+    /* Página ativa (type="primary") */
+    [data-testid="stSidebar"] .stButton > button[kind="primary"] {{
+        background-color: {AZUL_ESCURO};
+        color: white;
         font-weight: 600;
-    }
+    }}
+    [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {{
+        background-color: {AZUL};
+        color: white;
+    }}
+    /* Páginas inativas (type="secondary") */
+    [data-testid="stSidebar"] .stButton > button[kind="secondary"] {{
+        background-color: transparent;
+        color: inherit;
+    }}
+    [data-testid="stSidebar"] .stButton > button[kind="secondary"]:hover {{
+        background-color: rgba(43, 92, 143, 0.12);
+        color: inherit;
+    }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -202,11 +217,20 @@ st.markdown(
 st.sidebar.title("✨ Passos Mágicos")
 st.sidebar.caption("Datathon — PEDE 2022-2024")
 
-pagina = st.sidebar.radio(
-    "Navegação",
-    ["🏠 Visão Geral", "📊 Painel Analítico", "🔮 Preditor de Risco", "📝 Cadastro de Novo Aluno"],
-    label_visibility="collapsed",
-)
+PAGINAS = ["🏠 Visão Geral", "📊 Painel Analítico", "🔮 Preditor de Risco", "📝 Cadastro de Novo Aluno"]
+if "pagina_atual" not in st.session_state:
+    st.session_state["pagina_atual"] = PAGINAS[0]
+
+for opcao in PAGINAS:
+    ativa = st.session_state["pagina_atual"] == opcao
+    if st.sidebar.button(
+        opcao, key=f"nav_{opcao}", use_container_width=True,
+        type="primary" if ativa else "secondary",
+    ):
+        st.session_state["pagina_atual"] = opcao
+        st.rerun()
+
+pagina = st.session_state["pagina_atual"]
 
 st.sidebar.markdown("---")
 anos_disponiveis = sorted(df["Ano"].unique())
@@ -506,17 +530,18 @@ elif pagina == "📊 Painel Analítico":
             O alvo é: o aluno **permanece (ou passa a estar) em situação crítica** no ano
             seguinte (`Defasagem ≤ -1`).
 
-            O modelo usa uma **restrição de monotonicidade**: por construção, aumentar qualquer
-            um dos 5 indicadores nunca eleva o risco previsto — isso evita comportamento
-            contraintuitivo em perfis raros na base (ex.: um aluno com todos os indicadores no
-            máximo aparecendo com risco alto só por falta de exemplos parecidos no treino).
+            O modelo é uma **regressão logística com restrição de monotonicidade**: cada
+            coeficiente é obrigado a ter o mesmo sinal (indicador maior ⇒ risco menor ou igual,
+            nunca maior). Além dos indicadores pedagógicos, o modelo usa duas variáveis
+            demográficas — **Idade** e **Anos na Passos Mágicos** — que carregam sinal preditivo
+            genuinamente independente da defasagem atual, sem introduzir vazamento de dados (são
+            informações conhecidas no próprio ano em que a previsão é feita).
             """
         )
         if AUC_TESTE:
             st.metric("AUC — validação out-of-time", f"{AUC_TESTE:.3f}")
 
-        importancias = pd.Series(modelo_pack.get("importancias", {})).sort_values()
-        importancias_pct = importancias / importancias.sum() * 100
+        importancias_pct = pd.Series(modelo_pack.get("importancias", {})).sort_values()
         fig = px.bar(
             x=importancias_pct.values, y=importancias_pct.index, orientation="h",
             labels={"x": "Importância relativa (%)", "y": "Variável"},
@@ -526,10 +551,15 @@ elif pagina == "📊 Painel Analítico":
         rotula(fig, sufixo="%")
         st.plotly_chart(fig, use_container_width=True)
         st.markdown(
-            "**Leitura:** o IAN concentra a maior parte do sinal preditivo — o que faz sentido, "
-            "já que ele reflete diretamente a defasagem atual do aluno. IEG e IDA aparecem em "
-            "seguida. É uma ferramenta estatisticamente válida para apoiar a priorização de "
-            "intervenção preventiva — vá até **🔮 Preditor de Risco** para simular um aluno."
+            "**Leitura:** o IAN ainda é o maior peso individual (~44%) — o que faz sentido, já "
+            "que ele reflete diretamente a defasagem atual do aluno — mas deixou de dominar o "
+            "modelo sozinho. **Idade** (~16%), **IDA** (~15%), **IEG** (~14%) e **Anos na Passos "
+            "Mágicos** (~12%) somados já pesam mais que o IAN isoladamente. IAA e IPS seguem com "
+            "peso zero: sob a restrição de monotonicidade, a correlação deles com o risco futuro "
+            "não teve o sinal esperado (achado consistente com as perguntas 4 e 5, onde ambos "
+            "também mostraram correlação fraca com os resultados reais). É uma ferramenta "
+            "estatisticamente válida para apoiar a priorização de intervenção preventiva — vá até "
+            "**🔮 Preditor de Risco** para simular um aluno."
         )
 
     # ---------------------------------------------------------------
@@ -657,23 +687,34 @@ elif pagina == "🔮 Preditor de Risco":
 
     st.markdown("---")
 
-    valores_default = {"IAN": 10.0, "IDA": 6.7, "IEG": 8.6, "IAA": 7.7, "IPS": 6.0}
+    valores_default = {
+        "IAN": 10.0, "IDA": 6.7, "IEG": 8.6, "IAA": 7.7, "IPS": 6.0,
+        "Idade": 12, "Anos_na_PM": 2,
+    }
+    CAMPOS_ESPECIAIS = {"IAN", "Idade", "Anos_na_PM"}
+    campos_indicadores = [f for f in FEATURES if f not in CAMPOS_ESPECIAIS]
 
     col1, col2 = st.columns(2)
     entrada = {}
-    campos = [f for f in FEATURES if f != "IAN"]
-    metade = (len(campos) + 1) // 2
     with col1:
-        st.markdown("**IAN — Adequação de Nível**")
-        entrada["IAN"] = st.selectbox(
-            "IAN", options=[v for v, _ in OPCOES_IAN],
-            format_func=lambda v: dict(OPCOES_IAN)[v],
-            label_visibility="collapsed",
-        )
-        for f in campos[:metade]:
+        if "IAN" in FEATURES:
+            st.markdown("**IAN — Adequação de Nível**")
+            entrada["IAN"] = st.selectbox(
+                "IAN", options=[v for v, _ in OPCOES_IAN],
+                format_func=lambda v: dict(OPCOES_IAN)[v],
+                label_visibility="collapsed",
+            )
+        if "Idade" in FEATURES:
+            entrada["Idade"] = st.slider("Idade", 6, 22, int(valores_default["Idade"]), 1)
+        metade = (len(campos_indicadores) + 1) // 2
+        for f in campos_indicadores[:metade]:
             entrada[f] = st.slider(f, 0.0, 10.0, valores_default.get(f, 7.0), 0.1, key=f"pred_{f}")
     with col2:
-        for f in campos[metade:]:
+        if "Anos_na_PM" in FEATURES:
+            entrada["Anos_na_PM"] = st.slider(
+                "Anos na Passos Mágicos", 0, 10, int(valores_default["Anos_na_PM"]), 1
+            )
+        for f in campos_indicadores[metade:]:
             entrada[f] = st.slider(f, 0.0, 10.0, valores_default.get(f, 7.0), 0.1, key=f"pred_{f}")
 
     if st.button("Calcular risco", type="primary"):
@@ -726,9 +767,13 @@ elif pagina == "📝 Cadastro de Novo Aluno":
             instituicao = st.text_input("Instituição de ensino", value="Pública")
         with c5:
             pedra = st.selectbox("Pedra atual", ORDEM_PEDRA)
-            defasagem = st.number_input(
-                "Defasagem (Fase Efetiva − Fase Ideal)", min_value=-5, max_value=3, value=0, step=1
+            anos_na_pm = st.number_input(
+                "Anos na Passos Mágicos", min_value=0, max_value=15, value=1, step=1
             )
+
+        defasagem = st.number_input(
+            "Defasagem (Fase Efetiva − Fase Ideal)", min_value=-5, max_value=3, value=0, step=1
+        )
 
         st.subheader("Indicadores (escala 0 a 10)")
         c6, c7, c8, c9 = st.columns(4)
@@ -770,7 +815,8 @@ elif pagina == "📝 Cadastro de Novo Aluno":
                 "Instituicao_Ensino": instituicao, "Pedra_Atual": pedra, "INDE": inde,
                 "IAA": iaa, "IEG": ieg, "IPS": ips, "IPP": ipp, "IDA": ida,
                 "Matematica": mat, "Portugues": por, "Ingles": ing, "IPV": ipv, "IAN": ian,
-                "Defasagem": defasagem, "Cat_Defasagem": categoriza_defasagem(defasagem),
+                "Anos_na_PM": anos_na_pm, "Defasagem": defasagem,
+                "Cat_Defasagem": categoriza_defasagem(defasagem),
                 "Cadastrado_em": datetime.now().strftime("%Y-%m-%d %H:%M"),
             }
             st.session_state["novos_alunos"] = pd.concat(
@@ -784,7 +830,10 @@ elif pagina == "📝 Cadastro de Novo Aluno":
 
             st.success(f"Aluno **{nome}** (RA: {ra_final}) cadastrado com sucesso!")
 
-            proba = prever_risco({"IAN": ian, "IDA": ida, "IEG": ieg, "IAA": iaa, "IPS": ips, "IPP": ipp})
+            proba = prever_risco({
+                "IAN": ian, "IDA": ida, "IEG": ieg, "IAA": iaa, "IPS": ips,
+                "IPP": ipp, "Idade": idade, "Anos_na_PM": anos_na_pm,
+            })
             st.subheader("Estimativa de risco para este aluno")
             selo_risco(proba)
 
