@@ -50,7 +50,7 @@ def _pergunta_1(df):
     st.plotly_chart(fig, use_container_width=True)
     st.markdown(
         "**Leitura:** o nível adequado/adiantado sobe de **30% (2022) para 54% (2024)**, "
-        "e a defasagem severa cai de 3,3% para 0,3% — melhora consistente ao longo dos ciclos."
+        "e a defasagem severa cai de 3,3% para 0,3%. Uma melhora consistente ao longo dos ciclos."
     )
 
 
@@ -76,7 +76,7 @@ def _pergunta_2(df):
         st.plotly_chart(fig, use_container_width=True)
     st.markdown(
         "**Leitura:** o IDA sobe de 6,09 (2022) para 6,66 (2023) e recua para 6,35 em 2024. "
-        "Fases mais avançadas (a partir da Fase 3) tendem a ter IDA mais baixo."
+        "As Fases mais avançadas (a partir da Fase 3) tendem a ter IDA mais baixo."
     )
 
 
@@ -93,8 +93,8 @@ def _pergunta_3(df):
     )
     st.plotly_chart(fig, use_container_width=True)
     st.markdown(
-        "**Leitura:** correlação positiva e moderada — engajamento importa para o desempenho, "
-        "mas não é o único fator."
+        "**Leitura:** correlação positiva e moderada. O engajamento importa para o desempenho, "
+        "mas não é o único fator. Outras variáveis devem ser levadas em consideração para uma leitura mais acertiva"
     )
 
 
@@ -118,7 +118,7 @@ def _pergunta_4(df):
     )
     st.plotly_chart(fig, use_container_width=True)
     st.markdown(
-        "**Leitura:** correlação fraca em ambos os casos — a percepção do aluno sobre si "
+        "**Leitura:** correlação relativamente fraca. A percepção do aluno sobre si "
         "mesmo não é um bom preditor nem do seu desempenho real (pontos azuis), nem do seu "
         "engajamento observado (pontos laranja)."
     )
@@ -156,7 +156,7 @@ def _pergunta_5(df):
         "**Leitura:** níveis anteriores de IPS têm associação com alterações futuras de "
         "desempenho e engajamento. Alunos que caem no IDA/IEG tinham IPS anterior mais baixo "
         "na mediana. A relação é **mais evidente para o engajamento (r=0,19)** do que para o "
-        "desempenho acadêmico (r=0,12) — sugerindo que o IPS pode funcionar como indicador "
+        "desempenho acadêmico (r=0,12) O que nos sugere que o IPS pode funcionar como indicador "
         "antecedente de risco, principalmente ligado a vínculo e participação escolar."
     )
 
@@ -174,9 +174,7 @@ def _pergunta_6(df):
     st.markdown(
         f"**Leitura:** a correlação direta é baixa (r={corr_ipp_ian:.2f}), mas há uma redução "
         "gradual das medianas de IPP entre adequado → moderadamente defasado → severamente "
-        "defasado. O IPP sugere uma tendência de confirmação da defasagem apontada pelo IAN, "
-        "porém sem forte associação linear — é preciso considerar outros fatores no "
-        "diagnóstico."
+        "defasado. O IPP sugere uma tendência de confirmação da defasagem apontada pelo IAN "
     )
 
 
@@ -194,37 +192,20 @@ def _pergunta_7(df):
     st.markdown(
         "**Leitura:** IPP (0,61), IDA e IEG (0,56 cada) são os mais associados ao ponto de "
         "virada — acompanhamento psicopedagógico + desempenho + engajamento. Como IPV é uma "
-        "síntese longitudinal (e não uma fórmula fechada como o INDE), aqui a correlação é a "
-        "ferramenta correta de análise — não há um cálculo determinístico a reconstruir."
+        "síntese longitudinal aqui a correlação é a "
+        "ferramenta correta de análise"
     )
 
 
 def _pergunta_8(df, modelo_pack):
     st.subheader("Quais indicadores mais explicam o INDE?")
-
     pesos_inde = modelo_pack.get("pesos_inde")
-
     if pesos_inde:
         st.markdown(
-            """
-            O INDE **não precisa ser estimado por correlação** — o dicionário de dados define
-            que ele é uma ponderação fechada dos outros indicadores. Reconstruímos essa fórmula
-            e a validamos contra a base real:
-            """
+           
         )
-        pesos_series = pd.Series(pesos_inde).sort_values(ascending=True) * 100
-        fig_pesos = px.bar(
-            x=pesos_series.values, y=pesos_series.index, orientation="h",
-            labels={"x": "Peso na fórmula do INDE (%)", "y": "Indicador"},
-            title="Peso oficial de cada indicador no cálculo do INDE",
-            text=pesos_series.values, color_discrete_sequence=[AZUL],
-        )
-        rotula(fig_pesos, sufixo="%")
-        st.plotly_chart(fig_pesos, use_container_width=True)
-
         formula_txt = " + ".join(f"{v:.2f}×{k}" for k, v in pesos_inde.items())
         st.code(f"INDE = {formula_txt}", language=None)
-
         cols_necessarias = list(pesos_inde.keys()) + ["INDE"]
         df_verif = df.dropna(subset=cols_necessarias).copy()
         df_verif["INDE_calculado"] = sum(
@@ -236,14 +217,14 @@ def _pergunta_8(df, modelo_pack):
             f"{erro_medio:.3f} ponto (numa escala de 0 a 10).".replace(",", ".")
         )
         st.markdown(
-            "**Leitura:** por definição (não por observação estatística), **IDA e IEG pesam "
-            "20% cada, IPV também 20%**, somando 60% do INDE — desempenho acadêmico, "
-            "engajamento e ponto de virada dominam a nota. IAN, IAA, IPS e IPP entram com 10% "
-            "cada. Isso substitui a correlação como resposta a esta pergunta: **não é uma "
-            "associação estatística, é a própria regra de cálculo.**"
+            "**Leitura:** o peso na fórmula é fixo, mas não diz o quanto cada indicador "
+            "*de fato* influencia o resultado final. Um indicador pode ter peso alto e "
+            "variar pouco entre os alunos, contribuindo pouco para diferenciar o INDE na "
+            "prática, enquanto outro com peso menor pode ser o que mais acompanha (ou "
+            "puxa) a nota. A correlação abaixo mostra exatamente isso: qual indicador, ao "
+            "subir ou cair, mais se move junto com o INDE observado na base real."
         )
         st.markdown("---")
-
     st.subheader("Correlação observada (para referência)")
     cols_inde = ["IAA", "IEG", "IPS", "IPP", "IDA", "IPV", "IAN"]
     corr_inde = df[cols_inde + ["INDE"]].corr()["INDE"].drop("INDE").sort_values()
@@ -254,7 +235,6 @@ def _pergunta_8(df, modelo_pack):
     )
     rotula(fig)
     st.plotly_chart(fig, use_container_width=True)
-
     st.subheader("Matriz de correlação completa")
     matriz = df[cols_inde + ["INDE"]].corr().round(2)
     fig2 = px.imshow(
@@ -263,8 +243,8 @@ def _pergunta_8(df, modelo_pack):
     st.plotly_chart(fig2, use_container_width=True)
     st.caption(
         "Atenção: como o INDE é uma combinação linear dos indicadores acima, essas "
-        "correlações são parcialmente esperadas por construção — a ordem relativa entre elas "
-        "ainda é informativa, mas a fórmula oficial (acima) é a resposta definitiva."
+        "correlações são parcialmente esperadas por construção, a ordem relativa entre elas "
+        "ainda é informativa."
     )
 
 
@@ -272,7 +252,7 @@ def _pergunta_9(df, modelo, modelo_pack, features, auc_teste):
     st.subheader("Modelo preditivo de risco de defasagem")
     st.markdown(
         """
-        **Metodologia:** validação temporal *out-of-time* — o modelo é treinado com a
+        **Metodologia:** validação temporal *out-of-time* O modelo é treinado com a
         transição **2022 → 2023** e testado na transição **2023 → 2024**, simulando o uso
         real (prever o futuro a partir de dados do passado, sem misturar os dois períodos).
         O alvo é: o aluno **permanece (ou passa a estar) em situação crítica** no ano
@@ -281,7 +261,7 @@ def _pergunta_9(df, modelo, modelo_pack, features, auc_teste):
         O modelo é uma **regressão logística com restrição de monotonicidade**: cada
         coeficiente é obrigado a ter o mesmo sinal (indicador maior ⇒ risco menor ou igual,
         nunca maior). Além dos indicadores pedagógicos, o modelo usa duas variáveis
-        demográficas — **Idade** e **Anos na Passos Mágicos** — que carregam sinal preditivo
+        demográficas, **Idade** e **Anos na Passos Mágicos**,  que carregam sinal preditivo
         genuinamente independente da defasagem atual, sem introduzir vazamento de dados (são
         informações conhecidas no próprio ano em que a previsão é feita).
         """
@@ -316,14 +296,14 @@ def _pergunta_9(df, modelo, modelo_pack, features, auc_teste):
     rotula(fig, sufixo="%")
     st.plotly_chart(fig, use_container_width=True)
     st.markdown(
-        "**Leitura:** o IAN ainda é o maior peso individual (~44%) — o que faz sentido, já "
-        "que ele reflete diretamente a defasagem atual do aluno — mas deixou de dominar o "
-        "modelo sozinho. **Idade** (~16%), **IDA** (~15%), **IEG** (~14%) e **Anos na Passos "
+        "**Leitura:** o IAN ainda é o maior peso individual (~44%) O que faz sentido, já "
+        "que ele reflete diretamente a defasagem atual do aluno, mas "
+        " **Idade** (~16%), **IDA** (~15%), **IEG** (~14%) e **Anos na Passos "
         "Mágicos** (~12%) somados já pesam mais que o IAN isoladamente. IAA e IPS seguem com "
         "peso zero: sob a restrição de monotonicidade, a correlação deles com o risco futuro "
         "não teve o sinal esperado (achado consistente com as perguntas 4 e 5, onde ambos "
         "também mostraram correlação fraca com os resultados reais). É uma ferramenta "
-        "estatisticamente válida para apoiar a priorização de intervenção preventiva — vá até "
+        "estatisticamente válida para apoiar a priorização de intervenção preventiva => vá até "
         "**🔮 Preditor de Risco** para simular um aluno."
     )
 
@@ -369,7 +349,7 @@ def _pergunta_10(df):
         "**Leitura:** as Pedras refletem faixas crescentes de INDE (~5,40 no Quartzo até "
         "~8,47 no Topázio), mostrando um critério de nivelamento consistente. Acompanhando os "
         "mesmos alunos ao longo dos 3 anos, cerca de **26% sobem de categoria** e a maioria "
-        "consolida sua posição nas faixas superiores — evidência de evolução acadêmica "
+        "consolida sua posição nas faixas superiores. Evidência de evolução acadêmica "
         "sustentável."
     )
 
@@ -422,12 +402,12 @@ def _pergunta_11(df):
         1. **Gênero:** diferença de INDE médio pequena (≈0,15 ponto) — não parece um fator
            relevante de desigualdade dentro do programa.
         2. **Rede de ensino:** alunos em escolas privadas via apadrinhamento/bolsa têm INDE
-           médio mais alto que os de escola pública — vale investigar se é efeito do suporte
+           médio mais alto que os de escola pública. Vale investigar se é efeito do suporte
            extra ou viés de seleção dos indicados a essas vagas.
         3. **Fases intermediárias como ponto de atenção:** o IDA cai nas fases mais avançadas
-           (pergunta 2) — reforço extra a partir da Fase 3 pode valer a pena.
+           (pergunta 2) O reforço extra a partir da Fase 3 pode valer a pena.
         4. **Sinal de risco antecipável:** o modelo da pergunta 9 mostra que dá para sinalizar,
-           com boa antecedência, quais alunos correm risco de aumentar sua defasagem — abrindo
+           com boa antecedência, quais alunos correm risco de aumentar sua defasagem, abrindo
            espaço para intervenção preventiva antes que o problema se agrave.
         """
     )
