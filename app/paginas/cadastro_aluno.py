@@ -100,7 +100,6 @@ def render(df, modelo, modelo_pack, features, medias_treino):
             st.session_state["novos_alunos"] = pd.concat(
                 [st.session_state["novos_alunos"], pd.DataFrame([novo])], ignore_index=True
             )
-            # Persiste em disco (best-effort — funciona localmente e durante a sessão no Cloud)
             try:
                 st.session_state["novos_alunos"].to_csv(NOVOS_ALUNOS_PATH, index=False)
             except Exception:
