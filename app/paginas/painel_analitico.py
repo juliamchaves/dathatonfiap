@@ -50,7 +50,8 @@ def _pergunta_1(df):
     st.plotly_chart(fig, use_container_width=True)
     st.markdown(
         "**Leitura:** o nível adequado/adiantado sobe de **30% (2022) para 54% (2024)**, "
-        "e a defasagem severa cai de 3,3% para 0,3%. Uma melhora consistente ao longo dos ciclos."
+        "enquanto a defasagem severa cai de 3,3% para 0,3%. A defasagem moderada (a maior fatia em todos os anos) também recua de 67% para 46%. "
+        "Isso indica uma melhora consistente e progressiva na adequação de nível ao longo dos três ciclos. O programa parece estar reduzindo a defasagem educacional dos alunos ano após ano."
     )
 
 
@@ -75,8 +76,10 @@ def _pergunta_2(df):
         )
         st.plotly_chart(fig, use_container_width=True)
     st.markdown(
-        "**Leitura:** o IDA sobe de 6,09 (2022) para 6,66 (2023) e recua para 6,35 em 2024. "
-        "As Fases mais avançadas (a partir da Fase 3) tendem a ter IDA mais baixo."
+        "**Leitura:** o agregado, o IDA médio sobe de 6,09 (2022) para 6,66 (2023) e recua um pouco em 2024 (6,35) não é uma trajetória puramente ascendente, mas também não indica queda estrutural. "
+        "Em 2022 o padrão mais claro é que fases mais avançadas (a partir da Fase 3) tendem a ter IDA mais baixo que as fases iniciais, sugerindo que o conteúdo acadêmico fica proporcionalmente mais exigente conforme o aluno avança."
+        "Em 2024 observamos uma recuperação considerável nas fases finais, assim como registra médias superiores por quase todas as fases em relação a anos anteriores."
+        "Um ponto de possível melhoria é reforço pedagógico nas fases intermediárias/finais para evitar a repetição de 2022"
     )
 
 
@@ -93,8 +96,9 @@ def _pergunta_3(df):
     )
     st.plotly_chart(fig, use_container_width=True)
     st.markdown(
-        "**Leitura:** correlação positiva e moderada. O engajamento importa para o desempenho, "
-        "mas não é o único fator. Outras variáveis devem ser levadas em consideração para uma leitura mais acertiva"
+        "**Leitura:** Existe uma correlação **positiva e moderada** entre engajamento e os dois indicadores **(IEG x IDA = 0,54; IEG x IPV = 0,56)**. Ou seja, alunos mais engajados tendem, sim, "
+        "a ter melhor desempenho acadêmico e mais sinais de ponto de virada, mas a relação está longe de ser determinística (r bem abaixo de 1), o que sugere que engajamento é **um fator relevante, "
+        "mas não o único**, outras variáveis devem ser levadas em consideração para uma leitura mais acertiva "
     )
 
 
@@ -121,6 +125,8 @@ def _pergunta_4(df):
         "**Leitura:** correlação relativamente fraca. A percepção do aluno sobre si "
         "mesmo não é um bom preditor nem do seu desempenho real (pontos azuis), nem do seu "
         "engajamento observado (pontos laranja)."
+        "Muitos alunos se autoavaliam de forma parecida independentemente de como estão indo de fato. "
+        "Vale a pena investigar isso qualitativamente: pode ser efeito deautoestima elevada mesmo com dificuldades, ou um instrumento de autoavaliação poucoacertivo."
     )
 
 
@@ -190,10 +196,9 @@ def _pergunta_7(df):
     rotula(fig)
     st.plotly_chart(fig, use_container_width=True)
     st.markdown(
-        "**Leitura:** IPP (0,61), IDA e IEG (0,56 cada) são os mais associados ao ponto de "
-        "virada — acompanhamento psicopedagógico + desempenho + engajamento. Como IPV é uma "
-        "síntese longitudinal aqui a correlação é a "
-        "ferramenta correta de análise"
+        "**Leitura:** os indicadores mais associados ao IPV são, nesta ordem, **IPP (0,61)**, **IDA (0,56)** e **IEG (0,56)** ou seja, os comportamentos psicopedagógicos, "
+        "o desempenho acadêmico e o engajamento caminham juntos com o ponto de virada. IAA e IPS têm relação bem mais fraca. Isso sugere que, para levar mais alunos ao ponto de virada, "
+        "as frentes de **acompanhamento psicopedagógico + desempenho acadêmico + engajamento** são as mais promissoras.A análise de correlação evidencia quais dimensões apresentam maior associação linear com o Ponto de Virada (IPV). "
     )
 
 
@@ -217,12 +222,9 @@ def _pergunta_8(df, modelo_pack):
             f"{erro_medio:.3f} ponto (numa escala de 0 a 10).".replace(",", ".")
         )
         st.markdown(
-            "**Leitura:** o peso na fórmula é fixo, mas não diz o quanto cada indicador "
-            "*de fato* influencia o resultado final. Um indicador pode ter peso alto e "
-            "variar pouco entre os alunos, contribuindo pouco para diferenciar o INDE na "
-            "prática, enquanto outro com peso menor pode ser o que mais acompanha (ou "
-            "puxa) a nota. A correlação abaixo mostra exatamente isso: qual indicador, ao "
-            "subir ou cair, mais se move junto com o INDE observado na base real."
+            "**Leitura:** o INDE é mais fortemente puxado por **IDA (0,79)**, **IEG (0,75)** e **IPV (0,72)** essa combinação de desempenho acadêmico + engajamento + ponto de virada é o que mais eleva anota global do aluno. "
+            "IPP (0,54) e IAN (0,41) também contribuem de forma relevante, enquanto IPS (0,20) tem peso pequeno na explicação do INDE observado. "
+            "Como o INDE é definido a partir de uma ponderação desses próprios indicadores, essa correlação alta é, em parte, esperada por construção."
         )
         st.markdown("---")
     st.subheader("Correlação observada (para referência)")
@@ -296,10 +298,10 @@ def _pergunta_9(df, modelo, modelo_pack, features, auc_teste):
     rotula(fig, sufixo="%")
     st.plotly_chart(fig, use_container_width=True)
     st.markdown(
-        "**Leitura:** o IAN ainda é o maior peso individual (~44%) O que faz sentido, já "
+        "**Leitura:** o IAN é o maior peso individual (~44%) O que faz sentido, já "
         "que ele reflete diretamente a defasagem atual do aluno, mas "
         " **Idade** (~16%), **IDA** (~15%), **IEG** (~14%) e **Anos na Passos "
-        "Mágicos** (~12%) somados já pesam mais que o IAN isoladamente. IAA e IPS seguem com "
+        "Mágicos** (~12%) somados pesam mais que o IAN isoladamente. IAA e IPS seguem com "
         "peso zero: sob a restrição de monotonicidade, a correlação deles com o risco futuro "
         "não teve o sinal esperado (achado consistente com as perguntas 4 e 5, onde ambos "
         "também mostraram correlação fraca com os resultados reais). É uma ferramenta "
@@ -399,7 +401,7 @@ def _pergunta_11(df):
 
     st.markdown(
         """
-        1. **Gênero:** diferença de INDE médio pequena (≈0,15 ponto) — não parece um fator
+        1. **Gênero:** diferença de INDE médio pequena (≈0,15 ponto) não parece um fator
            relevante de desigualdade dentro do programa.
         2. **Rede de ensino:** alunos em escolas privadas via apadrinhamento/bolsa têm INDE
            médio mais alto que os de escola pública. Vale investigar se é efeito do suporte
